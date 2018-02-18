@@ -110,7 +110,7 @@ class SliderView: UIView {
         ctx.restoreGState()
         
         // value ------------------------------------------
-        func formatted(_ v:Float) -> String { return String(format:"%6.4f",v) }
+        func formatted(_ v:Float) -> String { return String(format:"%6.3f",v) }
         func formatted2(_ v:Float) -> String { return String(format:"%7.5f",v) }
         func formatted3(_ v:Float) -> String { return String(format:"%d",Int(v)) }
         func formatted4(_ v:Float) -> String { return String(format:"%5.2f",v) }

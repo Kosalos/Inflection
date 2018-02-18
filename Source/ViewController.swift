@@ -2,29 +2,49 @@ import UIKit
 import Metal
 import MetalKit
 
-var control = Control()
-var cBuffer:MTLBuffer! = nil
-var iBuffer:MTLBuffer! = nil        // 256 * float3
+extension Control {
+    init() {
+        centering = true
+        julia = true
+        inflectionCount = 0
+        centerX = 0;  centerY = 0
+        sCenter = float2()
+        zoom = 0
+        color1r = 0;  color1g = 0;  color1b = 0
+        color2r = 1;  color2g = 1;  color2b = 1
+    }
+}
+
+// used during development of screenRotated() layout routine to simulate other iPad sizes
+//let scrnSz:[CGPoint] = [ CGPoint(x:768,y:1024), CGPoint(x:834,y:1112), CGPoint(x:1024,y:1366) ] // portrait 9.7, 10.5, 12.9" iPads
+//let scrnIndex = 0
+//let scrnLandscape:Bool = true
 
 class ViewController: UIViewController {
-    var timer = Timer()
+    var control = Control()
+    var cBuffer:MTLBuffer! = nil
+    var iBuffer:MTLBuffer! = nil
+    
     var outTexture: MTLTexture!
-    var pipeline1: MTLComputePipelineState!
+    var pipeLine: MTLComputePipelineState!
     let queue = DispatchQueue(label: "Inflection")
     lazy var device: MTLDevice! = MTLCreateSystemDefaultDevice()
     lazy var defaultLibrary: MTLLibrary! = { self.device.makeDefaultLibrary() }()
     lazy var commandQueue: MTLCommandQueue! = { return self.device.makeCommandQueue() }()
-    let threadGroupCount = MTLSizeMake(16, 16, 1)
+    let threadGroupCount = MTLSizeMake(20,20, 1)
     lazy var threadGroups: MTLSize = { MTLSizeMake(Int(self.outTexture.width) / self.threadGroupCount.width, Int(self.outTexture.height) / self.threadGroupCount.height, 1) }()
     
-    var inflection = Array(repeating:float3(), count:256)
+    var timer = Timer()
+    var sList:[SliderView]! = nil
+    var dList:[DeltaView]! = nil
+    var inflection = Array(repeating:float3(0,0,0.01), count:Int(MAX_INFLECTIONS))
     var iIndex:Int32 = 0
     var iInfX:Float = 0
     var iInfY:Float = 0
     var iInfZ:Float = 0
     var needsPaint:Bool = false
     
-    let inflectionSize = MemoryLayout<float3>.stride * Int(MAXCOUNT)
+    let inflectionSize = MemoryLayout<float3>.stride * Int(MAX_INFLECTIONS)
     let centerMin:Float = -15
     let centerMax:Float = +15
     let zoomMin:Float = 0.001
@@ -35,79 +55,28 @@ class ViewController: UIViewController {
     @IBOutlet var positionZ: SliderView!
     @IBOutlet var inflectionXY: DeltaView!
     @IBOutlet var inflectionZ: SliderView!
+    @IBOutlet var color1XY: DeltaView!
+    @IBOutlet var color1Z: SliderView!
+    @IBOutlet var color2XY: DeltaView!
+    @IBOutlet var color2Z: SliderView!
     
-    func alterInflectionCount(_ dir:Int32) {
-        control.count = iClamp(control.count + dir,0,20)
-        alterInflectionIndex(0)
-    }
-
-    func alterInflectionIndex(_ dir:Int32) {
-        iIndex = iClamp(iIndex + dir,0,control.count-1)
-        if iIndex < 0 { iIndex = 0 }
-        
-        let ii = Int(iIndex)
-        iInfX = inflection[ii].x
-        iInfY = inflection[ii].y
-        iInfZ = inflection[ii].z
-
-        inflectionXY.initializeFloat1(&iInfX, centerMin, centerMax, 0.2, "Inflect XY")
-        inflectionXY.initializeFloat2(&iInfY)
-        inflectionZ.initializeFloat(&iInfZ, .delta, centerMin, centerMax, 0.2, "Inflect Z")
-        
-        infCountLabel.text = String(format:"I Count %2d", Int(control.count))
-        infIndexLabel.text = String(format:"I Index %2d", Int(iIndex + 1))  // base 1 display
-        inflectionXY.setNeedsDisplay()
-        inflectionZ.setNeedsDisplay()
-    }
-
+    @IBOutlet var iCMButton: UIButton!
+    @IBOutlet var iCPButton: UIButton!
+    @IBOutlet var iIMButton: UIButton!
+    @IBOutlet var iIPButton: UIButton!
+    @IBOutlet var resetButton: UIButton!
+    @IBOutlet var helpButton: UIButton!
+    @IBOutlet var iCLabel: UILabel!
+    @IBOutlet var iILabel: UILabel!
+    
     @IBAction func infCountMinus(_ sender: UIButton) { alterInflectionCount(-1) }
     @IBAction func infCountPlus(_ sender: UIButton)  { alterInflectionCount(+1) }
     @IBAction func infIndexMinus(_ sender: UIButton) { alterInflectionIndex(-1) }
     @IBAction func infIndexPlus(_ sender: UIButton)  { alterInflectionIndex(+1) }
-
-    @IBOutlet var infCountLabel: UILabel!
-    @IBOutlet var infIndexLabel: UILabel!
-    
-    func initialize() {
-        positionXY.initializeFloat1(&control.centerX, centerMin, centerMax, 2, "Center")
-        positionXY.initializeFloat2(&control.centerY)
-        positionZ.initializeFloat(&control.zoom, .delta, zoomMin, zoomMax, 0.01, "Zoom")
-   }
-    
-    //MARK: -
-//    bool centering;
-//    bool julia;
-//    int count;
-//    vector_float2 center;
-//    vector_float2 radius;
-//    vector_float2 aspect;
-//    vector_float3 dragging;
-
-    
-    func reset() {
-        iIndex = 0
-        control.count = 0
-        control.centerX = 3.426
-        control.centerY = -2.9556
-        control.zoom = 0.0052
-        control.radiusX = 0.01
-        control.radiusY = 0.006
-
-        positionXY.setNeedsDisplay()
-        positionZ.setNeedsDisplay()
-        alterInflectionIndex(0)
-
-        for i in 0 ..< MAXCOUNT { inflection[Int(i)] = float3(0,0,0.01) }
-        
-        needsPaint = true
-    }
-    
-    //MARK: -
-
     @IBAction func resetButtonPressed(_ sender: UIButton) { reset() }
-
+    
     override var prefersStatusBarHidden: Bool { return true }
-
+    
     //MARK: -
     
     override func viewDidLoad() {
@@ -115,9 +84,9 @@ class ViewController: UIViewController {
         
         do {
             guard let kf1 = defaultLibrary.makeFunction(name: "inflectionShader")  else { fatalError() }
-            pipeline1 = try device.makeComputePipelineState(function: kf1)
+            pipeLine = try device.makeComputePipelineState(function: kf1)
         }
-        catch { fatalError("error creating pipelines") }
+        catch { fatalError("error creating pipeline") }
 
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .bgra8Unorm_srgb,
@@ -126,27 +95,26 @@ class ViewController: UIViewController {
             mipmapped: false)
         outTexture = self.device.makeTexture(descriptor: textureDescriptor)!
         
-        initialize()
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
+        sList = [ positionZ, inflectionZ, color1Z, color2Z ]
+        dList = [ positionXY, inflectionXY, color1XY, color2XY ]
+
+        positionXY.initializeFloat1(&control.centerX, centerMin, centerMax, 3, "Center")
+        positionXY.initializeFloat2(&control.centerY)
+        positionZ.initializeFloat(&control.zoom, .delta, zoomMin, zoomMax, 0.01, "Zoom")
         
         cBuffer = device.makeBuffer(bytes: &control, length: MemoryLayout<Control>.stride, options: MTLResourceOptions.storageModeShared)
         iBuffer = device.makeBuffer(bytes: &inflection, length:inflectionSize, options: MTLResourceOptions.storageModeShared)
-
+        
         reset()
-        needsPaint = true
         timer = Timer.scheduledTimer(timeInterval: 1.0/20.0, target:self, selector: #selector(timerHandler), userInfo: nil, repeats:true)
+        screenRotated()
     }
     
     //MARK: -
     
     @objc func timerHandler() {
-        if positionXY.update() { needsPaint = true }
-        if positionZ.update() { needsPaint = true }
-        if inflectionXY.update() { needsPaint = true }
-        if inflectionZ.update() { needsPaint = true }
+        for s in sList { if s.update() { needsPaint = true }}
+        for d in dList { if d.update() { needsPaint = true }}
 
         if needsPaint {
             needsPaint = false
@@ -156,36 +124,114 @@ class ViewController: UIViewController {
     
     //MARK: -
     
-    func updateImage() {
-        queue.async {
-            self.calcInflection()
-            DispatchQueue.main.async { self.imageView.image = self.image(from: self.outTexture) }
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: nil) { _ in
+            self.screenRotated()
         }
     }
     
-//    func alterZoom(_ amt:Float) {
-//        let xc:Float = control.base.x + Float(imageView.bounds.width / 2) / control.zoom
-//        let yc:Float = control.base.y + Float(imageView.bounds.height / 2) / control.zoom
-//        
-//        control.zoom *= amt
-//        
-//        let min:Float = 150
-//        if control.zoom < min { control.zoom = min }
-//        
-//        //Swift.print("Zoom ",control.zoom)
-//        
-//        control.base.x = xc - Float(imageView.bounds.width / 2) / control.zoom
-//        control.base.y = yc - Float(imageView.bounds.height / 2) / control.zoom
-//        
-//        needsPaint = true
-//    }
+    @objc func screenRotated() {
+        let xs:CGFloat = view.bounds.width
+        let ys:CGFloat = view.bounds.height
+//                let xs = scrnLandscape ? scrnSz[scrnIndex].y : scrnSz[scrnIndex].x
+//                let ys = scrnLandscape ? scrnSz[scrnIndex].x : scrnSz[scrnIndex].y
+        
+        let fullWidth:CGFloat = 750
+        let fullHeight:CGFloat = 200
+        let ixs = xs - 4
+        let iys = ys - fullHeight
+        let cxs:CGFloat = 120   // slider width
+        let bys:CGFloat = 35    // slider height
+        let left:CGFloat = (xs - fullWidth)/2
+        let by:CGFloat = iys + 10  // widget top
+        var y:CGFloat = by
+        var x:CGFloat = left
+        
+        imageView.frame = CGRect(x:2, y:0, width:ixs, height:iys)
+        
+        positionXY.frame = CGRect(x:x, y:y, width:cxs, height:cxs); y += cxs + 10
+        positionZ.frame = CGRect(x:x, y:y, width:cxs, height:bys)
+        x += cxs + 20
+        y = by
+        inflectionXY.frame = CGRect(x:x, y:y, width:cxs, height:cxs); y += cxs + 10
+        inflectionZ.frame = CGRect(x:x, y:y, width:cxs, height:bys)
+        x += cxs + 20
+        y = by
+        let x2 = x
+        iCMButton.frame = CGRect(x:x, y:y, width:bys, height:bys);  x += bys + 10
+        iCPButton.frame = CGRect(x:x, y:y, width:bys, height:bys);  x += bys + 10
+        iCLabel.frame = CGRect(x:x, y:y, width:100, height:bys)
+        x = x2
+        y += bys + 10
+        iIMButton.frame = CGRect(x:x, y:y, width:bys, height:bys);  x += bys + 10
+        iIPButton.frame = CGRect(x:x, y:y, width:bys, height:bys);  x += bys + 10
+        iILabel.frame = CGRect(x:x, y:y, width:100, height:bys)
+        x = x2
+        y += bys + 50
+        resetButton.frame = CGRect(x:x, y:y, width:80, height:bys)
+        helpButton.frame = CGRect(x:x + 110, y:y, width:80, height:bys)
+        x += 200
+        y = by
+        color1XY.frame = CGRect(x:x, y:y, width:cxs, height:cxs); y += cxs + 10
+        color1Z.frame = CGRect(x:x, y:y, width:cxs, height:bys)
+        x += cxs + 20
+        y = by
+        color2XY.frame = CGRect(x:x, y:y, width:cxs, height:cxs); y += cxs + 10
+        color2Z.frame = CGRect(x:x, y:y, width:cxs, height:bys)
+    }
+    
+    //MARK: -
+    
+    func reset() {
+        iIndex = 0
+        control.inflectionCount = 0
+        control.centerX = 3.426
+        control.centerY = -2.9556
+        control.zoom = 0.0052
+        
+        positionXY.setNeedsDisplay()
+        positionZ.setNeedsDisplay()
+        alterInflectionIndex(0)
+        
+        for i in 0 ..< Int(MAX_INFLECTIONS) { inflection[i] = float3(0,0,0.01) }
+        needsPaint = true
+    }
+    
+    func alterInflectionCount(_ dir:Int32) {
+        control.inflectionCount = iClamp(control.inflectionCount + dir,0,MAX_INFLECTIONS - 1)
+        alterInflectionIndex(0)
+    }
+    
+    func alterInflectionIndex(_ dir:Int32) {
+        iIndex = iClamp(iIndex + dir,0,control.inflectionCount-1)
+        if iIndex < 0 { iIndex = 0 }
+        
+        let ii = Int(iIndex)
+        iInfX = inflection[ii].x
+        iInfY = inflection[ii].y
+        iInfZ = inflection[ii].z
+        
+        inflectionXY.initializeFloat1(&iInfX, centerMin, centerMax, 0.5, "Inf XY")
+        inflectionXY.initializeFloat2(&iInfY)
+        inflectionZ.initializeFloat(&iInfZ, .delta, centerMin, centerMax, 0.5, "Inf Z")
+        
+        color1XY.initializeFloat1(&control.color1r, 0,1, 0.5, "C1")
+        color1XY.initializeFloat2(&control.color1g)
+        color1Z.initializeFloat(&control.color1b, .delta, 0,1, 0.5, "")
+        color2XY.initializeFloat1(&control.color2r, 0,1, 0.5, "C2")
+        color2XY.initializeFloat2(&control.color2g)
+        color2Z.initializeFloat(&control.color2b, .delta, 0,1, 0.5, "")
+        
+        iCLabel.text = String(format:"I Count %2d", Int(control.inflectionCount))
+        iILabel.text = String(format:"I Index %2d", Int(iIndex + 1))  // base 1 display
+        inflectionXY.setNeedsDisplay()
+        inflectionZ.setNeedsDisplay()
+    }
     
     //MARK: -
 
     func calcInflection() {
-        
-        control.centering = true
-        control.julia = true
         control.sCenter.x = -control.centerX
         control.sCenter.y = control.centerY
 
@@ -194,15 +240,13 @@ class ViewController: UIViewController {
         inflection[ii].y = iInfY
         inflection[ii].z = iInfZ
 
-//        control.dragging = float3(0,0,0)
-        
         iBuffer.contents().copyBytes(from: &inflection, count:inflectionSize)
         cBuffer.contents().copyBytes(from: &control, count:MemoryLayout<Control>.stride)
         
         let commandBuffer = commandQueue.makeCommandBuffer()!
         let commandEncoder = commandBuffer.makeComputeCommandEncoder()!
         
-        commandEncoder.setComputePipelineState(pipeline1)
+        commandEncoder.setComputePipelineState(pipeLine)
         commandEncoder.setTexture(outTexture, index: 0)
         commandEncoder.setBuffer(cBuffer, offset: 0, index: 0)
         commandEncoder.setBuffer(iBuffer, offset: 0, index: 1)
@@ -213,31 +257,16 @@ class ViewController: UIViewController {
         commandBuffer.waitUntilCompleted()
     }
     
-    //MARK: -
-    
-    @IBAction func tapGesture(_ sender: UITapGestureRecognizer) {
-        //        let t = sender.location(in: nil)
-        //        tapScrollX = Float(t.x - self.imageView.bounds.width/2)  / (control.zoom * Float(12))
-        //        tapScrollY = Float(t.y - self.imageView.bounds.height/2) / (control.zoom * Float(12))
-        //        tapScrollCount = 10
-    }
-    
-    @IBAction func panGesture(_ sender: UIPanGestureRecognizer) {
-        //        let t = sender.translation(in: self.view)
-    }
-    
-    @IBAction func pinchGesture(_ sender: UIPinchGestureRecognizer) {
-        //        var t = Float(sender.scale)
-        //        t = Float(1) - (Float(1) - t) / Float(20)
-        
-        //Swift.print("Pinch gesture ",t)
-        
-        //        alterZoom(t)
+    func updateImage() {
+        queue.async {
+            self.calcInflection()
+            DispatchQueue.main.async { self.imageView.image = self.image(from: self.outTexture) }
+        }
     }
     
     //MARK: -
     // edit Scheme, Options, Metal API Validation : Disabled
-    //the fix is to turn off Metal API validation under Product -> Scheme -> Options
+    // the fix is to turn off Metal API validation under Product -> Scheme -> Options
     
     func image(from texture: MTLTexture) -> UIImage {
         let bytesPerPixel: Int = 4

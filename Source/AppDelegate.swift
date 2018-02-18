@@ -9,6 +9,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         NSSetUncaughtExceptionHandler { exception in
             print(exception)
             //print(exception.callStackSymbols)
+            exit(0)
         }
         
         return true

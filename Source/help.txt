@@ -1,0 +1,17 @@
+Inflection drawing of Julia set
+
+Please read the excellent exposition:
+https://fractalforums.org/other/55/inflector-gadget-inflection-mapping-for-complex-quadratic-polynomials/519
+
+The usual Julia set is transformed by inflecting it at various locations.
+
+All the slider boxes work the same way:
+Press and hold to either side of center to affect the parameter in the specfied direction and speed.
+
+A.  Rudimentary control over position and scale of the image.
+B.  Alter the current inflection point position and strength.
+C.  Specfiy the number of of infection points.
+D.  Select which inflection point is edited.
+E.  Reset to stock Julia with no inflections.
+F.  Set the RGB starting color.
+G.  Set the RGB ending color.

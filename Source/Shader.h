@@ -1,5 +1,5 @@
-#ifndef ShaderTypes_h
-#define ShaderTypes_h
+#ifndef Shader_h
+#define Shader_h
 
 #ifdef __METAL_VERSION__
 #define NS_ENUM(_type, _name) enum _name : _type _name; enum _name : _type
@@ -10,20 +10,21 @@
 
 #include <simd/simd.h>
 
-#define SIZE 1024
-#define MAXCOUNT 8
+#define SIZE 1000
+#define MAX_INFLECTIONS 8
 
 struct Control {
     bool centering;
     bool julia;
-    int count;
+    int inflectionCount;
     float centerX,centerY;
-    float radiusX,radiusY;
 
     vector_float2 sCenter;
     float zoom;
-    vector_float3 dragging;
+    
+    float color1r,color1g,color1b;
+    float color2r,color2g,color2b;
 };
 
-#endif /* ShaderTypes_h */
+#endif
 

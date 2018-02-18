@@ -15,6 +15,9 @@
 		1D096EF9201FBD1200319D47 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1D14906E1F9FA199004B538F /* Assets.xcassets */; };
 		1D096F012020C9A800319D47 /* DeltaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D096EFF2020C9A800319D47 /* DeltaView.swift */; };
 		1D096F022020C9A800319D47 /* SliderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D096F002020C9A800319D47 /* SliderView.swift */; };
+		1D46BB8B2039F6880030EE9C /* Background.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D46BB8A2039F6880030EE9C /* Background.swift */; };
+		1D46BB8D2039FE930030EE9C /* HelpViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D46BB8C2039FE930030EE9C /* HelpViewController.swift */; };
+		1D46BB8F2039FEA70030EE9C /* help.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1D46BB8E2039FEA70030EE9C /* help.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,12 +26,15 @@
 		1D096EFF2020C9A800319D47 /* DeltaView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeltaView.swift; sourceTree = "<group>"; };
 		1D096F002020C9A800319D47 /* SliderView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SliderView.swift; sourceTree = "<group>"; };
 		1D1490621F9FA199004B538F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		1D1490641F9FA199004B538F /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
+		1D1490641F9FA199004B538F /* Shader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Shader.h; sourceTree = "<group>"; };
 		1D1490671F9FA199004B538F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		1D1490691F9FA199004B538F /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		1D14906E1F9FA199004B538F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1D1490711F9FA199004B538F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		1D1490731F9FA199004B538F /* Inflectionnfo.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Inflectionnfo.plist; sourceTree = "<group>"; };
+		1D46BB8A2039F6880030EE9C /* Background.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Background.swift; sourceTree = "<group>"; };
+		1D46BB8C2039FE930030EE9C /* HelpViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HelpViewController.swift; sourceTree = "<group>"; };
+		1D46BB8E2039FEA70030EE9C /* help.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = help.txt; sourceTree = "<group>"; };
 		1DCAC5741FA349E6000E90E8 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -64,15 +70,18 @@
 			isa = PBXGroup;
 			children = (
 				1D1490691F9FA199004B538F /* Shaders.metal */,
-				1D1490641F9FA199004B538F /* ShaderTypes.h */,
+				1D1490641F9FA199004B538F /* Shader.h */,
 				1D1490671F9FA199004B538F /* ViewController.swift */,
 				1DCAC5731FA349E6000E90E8 /* Main.storyboard */,
 				1D096EFF2020C9A800319D47 /* DeltaView.swift */,
 				1D096F002020C9A800319D47 /* SliderView.swift */,
+				1D46BB8C2039FE930030EE9C /* HelpViewController.swift */,
+				1D46BB8A2039F6880030EE9C /* Background.swift */,
 				1D1490621F9FA199004B538F /* AppDelegate.swift */,
 				1D14906E1F9FA199004B538F /* Assets.xcassets */,
 				1D1490701F9FA199004B538F /* LaunchScreen.storyboard */,
 				1D1490731F9FA199004B538F /* Inflectionnfo.plist */,
+				1D46BB8E2039FEA70030EE9C /* help.txt */,
 				1D1490601F9FA199004B538F /* Products */,
 			);
 			path = Source;
@@ -139,6 +148,7 @@
 				1D096EF7201FBD1200319D47 /* Main.storyboard in Resources */,
 				1D096EF8201FBD1200319D47 /* LaunchScreen.storyboard in Resources */,
 				1D096EF9201FBD1200319D47 /* Assets.xcassets in Resources */,
+				1D46BB8F2039FEA70030EE9C /* help.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,11 +159,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1D46BB8D2039FE930030EE9C /* HelpViewController.swift in Sources */,
 				1D096F012020C9A800319D47 /* DeltaView.swift in Sources */,
 				1D096EF1201FBD1200319D47 /* Shaders.metal in Sources */,
 				1D096EF2201FBD1200319D47 /* ViewController.swift in Sources */,
 				1D096F022020C9A800319D47 /* SliderView.swift in Sources */,
 				1D096EF3201FBD1200319D47 /* AppDelegate.swift in Sources */,
+				1D46BB8B2039F6880030EE9C /* Background.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -192,7 +204,7 @@
 				MTL_OPTIMIZATION_LEVEL = 3;
 				PRODUCT_BUNDLE_IDENTIFIER = Harry.com.Inflection;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = Source/ShaderTypes.h;
+				SWIFT_OBJC_BRIDGING_HEADER = Source/Shader.h;
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = 2;
 			};
@@ -212,7 +224,7 @@
 				MTL_OPTIMIZATION_LEVEL = 3;
 				PRODUCT_BUNDLE_IDENTIFIER = Harry.com.Inflection;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = Source/ShaderTypes.h;
+				SWIFT_OBJC_BRIDGING_HEADER = Source/Shader.h;
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = 2;
 			};
